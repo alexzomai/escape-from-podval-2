@@ -1,4 +1,7 @@
-use escape_from_podval::assets::{Assets, TextCache, resource_root};
+// на Windows игра запускается без консольного окна
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
+use escape_from_podval::assets::{Assets, TextCache};
 use escape_from_podval::audio::Audio;
 use escape_from_podval::game::{Game, Outcome};
 use escape_from_podval::gfx::{Canvas, Image};
@@ -66,6 +69,13 @@ impl FpsCounter {
 fn main() {
     if let Err(e) = run() {
         eprintln!("error: {e}");
+        // консоли может не быть (Windows), поэтому ошибку показываем ещё и окном
+        let _ = sdl2::messagebox::show_simple_message_box(
+            sdl2::messagebox::MessageBoxFlag::ERROR,
+            TITLE,
+            &e,
+            None,
+        );
         std::process::exit(1);
     }
 }
@@ -83,9 +93,6 @@ fn run() -> Result<(), String> {
         }
         None => None,
     };
-    let root = resource_root().ok_or(
-        "не найдены resources/ и maps/ (запускайте из папки игры или задайте PODVAL_ROOT)",
-    )?;
     // кадры не ждут вертикальной синхронизации — FPS не ограничен
     sdl2::hint::set("SDL_RENDER_VSYNC", "0");
     let sdl = sdl2::init()?;
@@ -111,14 +118,14 @@ fn run() -> Result<(), String> {
         frame: Canvas::new(WIDTH, HEIGHT),
     };
 
-    let assets = Assets::load(&root)?;
-    let mut text = TextCache::new(ttf, &root)?;
-    let map = WorldMap::load(&root)?;
+    let assets = Assets::load()?;
+    let mut text = TextCache::new(ttf)?;
+    let map = WorldMap::load()?;
     let minimap = build_minimap(&map);
     let mut audio = if bench.is_some() {
         Audio::silent()
     } else {
-        Audio::new(&root)
+        Audio::open()
     };
     let mut events = sdl.event_pump()?;
     let mouse = sdl.mouse();

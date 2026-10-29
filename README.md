@@ -79,6 +79,11 @@
 
 ---
 
+## Скачать
+
+Готовые сборки — на странице [релизов](https://github.com/alexzomai/escape-from-podval-2/releases/latest):
+`EscapeFromPodval2.exe` для Windows и `EscapeFromPodval2.sh` для Linux. Это один файл, ничего ставить не нужно.
+
 ## Сборка и запуск
 
 Нужны Rust (stable) и библиотеки SDL2 и SDL2_ttf, на Linux ещё ALSA:
@@ -90,12 +95,15 @@
 cargo run --release
 ```
 
-Игра ищет `resources/` и `maps/` в текущей папке, рядом с бинарником или в папке
-исходников; другой путь можно задать через `PODVAL_ROOT`.
+Ассеты вшиты в бинарник, так что игра — один файл.
 
 Управление прежнее: WASD — ходьба, мышь — поворот, ЛКМ — выстрел, Esc — выход.
 
 `cargo run --release -- --bench 5` пять секунд гоняет игру без меню и звука и печатает средний FPS.
+
+Релизы собирает `.github/workflows/release.yml` при пуше тега `v*`: SDL2 и SDL2_ttf
+линкуются статически (на Linux — из `scripts/build-sdl-static.sh`, на Windows — из vcpkg),
+а `scripts/make-sh.sh` упаковывает Linux-бинарник в самораспаковывающийся `.sh`.
 
 ## Как устроен порт
 

@@ -2,6 +2,7 @@
 
 pub mod assets;
 pub mod audio;
+pub mod embedded;
 pub mod game;
 pub mod gfx;
 pub mod map;

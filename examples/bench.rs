@@ -7,15 +7,13 @@ use escape_from_podval::map::WorldMap;
 use escape_from_podval::player::Input;
 use escape_from_podval::render::{build_minimap, draw_game};
 use escape_from_podval::settings::*;
-use std::path::PathBuf;
 use std::time::Instant;
 
 fn main() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let ttf = Box::leak(Box::new(sdl2::ttf::init().unwrap()));
-    let assets = Assets::load(&root).unwrap();
-    let mut text = TextCache::new(ttf, &root).unwrap();
-    let map = WorldMap::load(&root).unwrap();
+    let assets = Assets::load().unwrap();
+    let mut text = TextCache::new(ttf).unwrap();
+    let map = WorldMap::load().unwrap();
     let minimap = build_minimap(&map);
     let mut game = Game::new(map);
     let mut canvas = Canvas::new(WIDTH, HEIGHT);

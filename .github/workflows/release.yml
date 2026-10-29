@@ -1,0 +1,80 @@
+# Сборка релиза: EscapeFromPodval2.exe (Windows) и EscapeFromPodval2.sh (Linux).
+# Запускается пушем тега вида v1.2.3; файлы прикрепляются к релизу с этим тегом.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    # старая glibc — чтобы бинарник запускался на большинстве дистрибутивов
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev \
+            libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev \
+            libdrm-dev libgbm-dev
+      - name: Build static SDL2
+        run: scripts/build-sdl-static.sh "$RUNNER_TEMP/sdl-src" "$RUNNER_TEMP/sdl"
+      - name: Test and build
+        env:
+          PKG_CONFIG_PATH: ${{ runner.temp }}/sdl/lib/pkgconfig
+          PKG_CONFIG_ALL_STATIC: "1"
+        run: |
+          cargo test --release --features static-sdl
+          cargo build --release --features static-sdl
+          scripts/make-sh.sh target/release/escape-from-podval EscapeFromPodval2.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: EscapeFromPodval2.sh
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install static SDL2 from vcpkg
+        run: vcpkg install sdl2-ttf:x64-windows-static
+      - name: Test and build
+        env:
+          VCPKG_ROOT: C:\vcpkg
+          RUSTFLAGS: -C target-feature=+crt-static
+        # сверка с эталоном снята на glibc: математика CRT Windows отличается в последних битах,
+        # поэтому здесь только модульные тесты
+        run: |
+          cargo test --release --features static-sdl-vcpkg --lib
+          cargo build --release --features static-sdl-vcpkg
+          Copy-Item target\release\escape-from-podval.exe EscapeFromPodval2.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: EscapeFromPodval2.exe
+
+  release:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          chmod +x EscapeFromPodval2.sh
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "Escape From Podval 2 $TAG" --notes-file .github/release-notes.md
+          fi
+          gh release upload "$TAG" EscapeFromPodval2.exe EscapeFromPodval2.sh --clobber

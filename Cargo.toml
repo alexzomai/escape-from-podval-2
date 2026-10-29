@@ -1,12 +1,19 @@
 [package]
 name = "escape-from-podval"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 
 [dependencies]
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
 rodio = { version = "0.23.0", default-features = false, features = ["playback", "symphonia-mp3"] }
 sdl2 = { version = "0.38.0", features = ["ttf"] }
+
+[features]
+# Релизные сборки с вшитым SDL2 (см. .github/workflows/release.yml):
+# Linux — статические библиотеки из scripts/build-sdl-static.sh через pkg-config,
+# Windows — статические библиотеки из vcpkg.
+static-sdl = ["sdl2/static-link", "sdl2/use-pkgconfig"]
+static-sdl-vcpkg = ["sdl2/static-link", "sdl2/use-vcpkg"]
 
 [dev-dependencies]
 crc32fast = "1.5.3"

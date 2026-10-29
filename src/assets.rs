@@ -1,31 +1,22 @@
+use crate::embedded;
 use crate::gfx::Image;
 use crate::settings::Rgb;
 use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::rwops::RWops;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-/// Каталог с `resources/` и `maps/`: рабочая папка, папка бинарника (и выше) или исходники.
-pub fn resource_root() -> Option<PathBuf> {
-    let ok = |p: &Path| p.join("resources/font.ttf").is_file() && p.join("maps/map.txt").is_file();
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(dir) = std::env::var_os("PODVAL_ROOT") {
-        candidates.push(dir.into());
-    }
-    if let Ok(dir) = std::env::current_dir() {
-        candidates.push(dir);
-    }
-    if let Ok(exe) = std::env::current_exe() {
-        candidates.extend(exe.ancestors().skip(1).take(4).map(Path::to_path_buf));
-    }
-    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")));
-    candidates.into_iter().find(|p| ok(p))
+/// Картинка из файла на диске.
+pub fn load_image(path: &Path, alpha: bool) -> Result<Image, String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    decode_image(&bytes, alpha).map_err(|e| format!("{}: {e}", path.display()))
 }
 
-/// Загрузка картинки. `alpha = false` — как `.convert()`: альфа отбрасывается, RGB остаётся.
-pub fn load_image(path: &Path, alpha: bool) -> Result<Image, String> {
-    let img = image::open(path)
-        .map_err(|e| format!("{}: {e}", path.display()))?
+/// Декодирование картинки. `alpha = false` — как `.convert()`: альфа отбрасывается, RGB остаётся.
+pub fn decode_image(bytes: &[u8], alpha: bool) -> Result<Image, String> {
+    let img = image::load_from_memory(bytes)
+        .map_err(|e| e.to_string())?
         .to_rgba8();
     let (w, h) = img.dimensions();
     let px = img
@@ -55,9 +46,11 @@ pub struct Assets {
 }
 
 impl Assets {
-    pub fn load(root: &Path) -> Result<Assets, String> {
-        let res = root.join("resources");
-        let img = |p: &str, alpha: bool| load_image(&res.join(p), alpha);
+    pub fn load() -> Result<Assets, String> {
+        let img = |p: &str, alpha: bool| {
+            let path = format!("resources/{p}");
+            decode_image(embedded::file(&path), alpha).map_err(|e| format!("{path}: {e}"))
+        };
         let mut walls = HashMap::new();
         for (key, file) in [
             (b'B', "brick"),
@@ -102,11 +95,11 @@ pub struct TextCache {
 }
 
 impl TextCache {
-    pub fn new(ttf: &'static Sdl2TtfContext, root: &Path) -> Result<TextCache, String> {
-        let path = root.join("resources/font.ttf");
+    pub fn new(ttf: &'static Sdl2TtfContext) -> Result<TextCache, String> {
         let mut fonts = HashMap::new();
         for size in [72, 40, 25] {
-            fonts.insert(size, ttf.load_font(&path, size)?);
+            let data = RWops::from_bytes(embedded::file("resources/font.ttf"))?;
+            fonts.insert(size, ttf.load_font_from_rwops(data, size)?);
         }
         Ok(TextCache {
             fonts,

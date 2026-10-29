@@ -45,11 +45,10 @@ impl WorldMap {
         }
     }
 
-    pub fn load(root: &std::path::Path) -> Result<WorldMap, String> {
-        let path = root.join("maps/map.txt");
-        let text =
-            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        Ok(WorldMap::parse(&text))
+    pub fn load() -> Result<WorldMap, String> {
+        let text = std::str::from_utf8(crate::embedded::file("maps/map.txt"))
+            .map_err(|e| format!("maps/map.txt: {e}"))?;
+        Ok(WorldMap::parse(text))
     }
 
     pub fn tile(&self, tx: i64, ty: i64) -> Option<u8> {

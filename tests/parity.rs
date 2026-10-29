@@ -126,9 +126,9 @@ fn gameplay_matches_original() {
     let crcs = read_lines(&dir.join("crc.txt"));
     let result = read_lines(&dir.join("result.txt"))[0].clone();
 
-    let assets = Assets::load(&root()).unwrap();
-    let mut text = TextCache::new(ttf(), &root()).unwrap();
-    let map = WorldMap::load(&root()).unwrap();
+    let assets = Assets::load().unwrap();
+    let mut text = TextCache::new(ttf()).unwrap();
+    let map = WorldMap::load().unwrap();
     let minimap = build_minimap(&map);
     let mut game = Game::new(map);
     let mut canvas = Canvas::new(WIDTH, HEIGHT);
@@ -234,8 +234,8 @@ fn gameplay_matches_original() {
 #[test]
 fn screens_match_original() {
     let dir = data_dir();
-    let assets = Assets::load(&root()).unwrap();
-    let mut text = TextCache::new(ttf(), &root()).unwrap();
+    let assets = Assets::load().unwrap();
+    let mut text = TextCache::new(ttf()).unwrap();
     let mut canvas = Canvas::new(WIDTH, HEIGHT);
     let positions = [
         ("none", (0, 0)),
